@@ -17,6 +17,9 @@
 #include <algorithm>
 //#endif
 #include <wx/tokenzr.h>
+#include <wx/sstream.h>
+#include <wx/mstream.h>
+#include <wx/textfile.h>
 
 //#include <configurationpanel.h>
 
@@ -233,6 +236,59 @@ wxString cbClangCompileCommands::GetCompileCommand(ProjectFile* pf, const wxStri
     return compileCommand;
 }
 
+void cbClangCompileCommands::WriteStringValue(wxFile& out, const wxString& value) const
+{
+    wxMemoryOutputStream os;
+
+    os.PutC('\"');
+
+    wxCharBuffer cb = value.ToUTF8();
+    char* writeBuffer = cb.data();
+    size_t len = strlen( writeBuffer );
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        char escapeChar = 0;
+        switch(*writeBuffer)
+        {
+        case '\"':
+            escapeChar = '\"';
+            break;
+        case '\\':
+            escapeChar = '\\';
+            break;
+        case '\n':
+            escapeChar = 'n';
+            break;
+        case '\r':
+            escapeChar = 'r';
+            break;
+        case '\b':
+            escapeChar = 'b';
+            break;
+        case '\t':
+            escapeChar = 't';
+            break;
+        }
+        if (escapeChar)
+        {
+            os.PutC('\\');
+            os.PutC(escapeChar);
+        }
+        else
+        {
+            os.PutC(*writeBuffer);
+        }
+        writeBuffer++;
+    }
+    os.PutC( '\"' );
+
+    wxStreamBuffer* osBuffer = os.GetOutputStreamBuffer();
+    void* bufPtr = osBuffer->GetBufferStart();
+    wxString str = wxString::FromUTF8( (const char*)bufPtr, os.GetLength() );
+    out.Write( str );
+}
+
 void cbClangCompileCommands::RebuildCompileCommands(cbProject* pProj)
 {
     wxFileName fn(pProj->GetCommonTopLevelPath(), wxT("compile_commands.json"));
@@ -243,27 +299,37 @@ void cbClangCompileCommands::RebuildCompileCommands(cbProject* pProj)
         ProjectFile* f = *it;
         if (it == pProj->GetFilesList().begin())
         {
-            out.Write(wxT("\r\n  "));
+            out.Write(wxTextFile::GetEOL());
+            out.Write(wxT("  "));
         }
         else
         {
-            out.Write( wxT(",\r\n  ") );
+            out.Write( wxT(",") );
+            out.Write( wxTextFile::GetEOL() );
+            out.Write( wxT("  ") );
         }
-        out.Write( wxT("{ \"directory\": \"") );
+        out.Write( wxT("{ \"directory\": ") );
         wxString executionDir = pProj->GetExecutionDir();
 #ifdef __WXMSW__
         while( executionDir.Replace( wxT("\\"), wxT("/") ))
             ;
 #endif
+        WriteStringValue( out, executionDir );
         out.Write( executionDir );
-        out.Write( wxT("\"\r\n    \"command\": \"") );
+        out.Write( wxT(",") );
+        out.Write( wxTextFile::GetEOL());
+        out.Write( wxT("    \"command\": ") );
         wxString compileCommand = GetCompileCommand(f, f->file.GetFullName() );
-        out.Write( compileCommand );
-        out.Write( wxT("\"\r\n    \"file: \"") );
-        out.Write( f->file.GetFullName() );
-        out.Write( wxT("\"  }") );
+        WriteStringValue( out, compileCommand );
+        out.Write( wxT(",") );
+        out.Write( wxTextFile::GetEOL() );
+        out.Write( wxT("    \"file\": ") );
+        WriteStringValue( out, f->file.GetFullName() );
+        out.Write( wxT("  }") );
     }
-    out.Write( wxT("\r\n]\r\n") );
+    out.Write( wxTextFile::GetEOL() );
+    out.Write( wxT("]") );
+    out.Write( wxTextFile::GetEOL() );
     out.Close();
 }
 

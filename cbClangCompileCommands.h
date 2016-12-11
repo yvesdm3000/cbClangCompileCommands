@@ -127,6 +127,7 @@ class cbClangCompileCommands : public cbPlugin
         wxString GetCompilerInclDirs(const wxString& compId);
         wxString GetCompileCommand(ProjectFile* pf, const wxString& filename);
         void RebuildCompileCommands(cbProject* pProj);
+        void WriteStringValue(wxFile& out, const wxString& value) const;
 
 
     private:
