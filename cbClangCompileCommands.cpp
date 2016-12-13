@@ -182,12 +182,23 @@ wxString cbClangCompileCommands::GetCompileCommand(ProjectFile* pf, const wxStri
                                  g_InvalidStr, g_InvalidStr, g_InvalidStr );
     delete gen;
 
+
+    std::vector<wxString> unknownOptions;
+    unknownOptions.push_back(wxT("-Wno-unused-local-typedefs"));
+    unknownOptions.push_back(wxT("-Wzero-as-null-pointer-constant"));
+    unknownOptions.push_back(wxT("-mthreads"));
+    std::sort(unknownOptions.begin(), unknownOptions.end());
+
     wxStringTokenizer tokenizer(compileCommand);
     compileCommand.Empty();
     wxString pathStr;
     while (tokenizer.HasMoreTokens())
     {
         wxString flag = tokenizer.GetNextToken();
+
+        if (std::binary_search(unknownOptions.begin(), unknownOptions.end(), flag))
+            continue;
+
         // make all include paths absolute, so clang does not choke if Code::Blocks switches directories
         if (flag.StartsWith(wxT("-I"), &pathStr))
         {
