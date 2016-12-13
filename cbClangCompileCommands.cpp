@@ -175,7 +175,7 @@ wxString cbClangCompileCommands::GetCompileCommand(ProjectFile* pf, const wxStri
     }
 
     if (compileCommand.IsEmpty())
-        compileCommand = comp->GetPrograms().CPP + wxT(" $options $includes");
+        compileCommand = /*comp->GetPrograms().CPP +*/ wxT("clang++ $options $includes");
     CompilerCommandGenerator* gen = comp->GetCommandGenerator(proj);
     if (gen)
         gen->GenerateCommandLine(compileCommand, target, pf, filename,
@@ -217,6 +217,7 @@ wxString cbClangCompileCommands::GetCompileCommand(ProjectFile* pf, const wxStri
         compileCommand += flag + wxT(" ");
     }
     compileCommand += GetCompilerInclDirs(comp->GetID());
+    compileCommand += wxT("-c \"") + filename + wxT("\"");
 
     /*
     ConfigManager* cfg = Manager::Get()->GetConfigManager(CLANG_CONFIGMANAGER);
@@ -320,13 +321,13 @@ void cbClangCompileCommands::RebuildCompileCommands(cbProject* pProj)
             out.Write( wxT("  ") );
         }
         out.Write( wxT("{ \"directory\": ") );
-        wxString executionDir = pProj->GetExecutionDir();
+        //wxString executionDir = pProj->GetExecutionDir();
+        wxString executionDir = f->file.GetPath();
 #ifdef __WXMSW__
         while( executionDir.Replace( wxT("\\"), wxT("/") ))
             ;
 #endif
         WriteStringValue( out, executionDir );
-        out.Write( executionDir );
         out.Write( wxT(",") );
         out.Write( wxTextFile::GetEOL());
         out.Write( wxT("    \"command\": ") );
