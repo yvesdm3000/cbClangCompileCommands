@@ -10,6 +10,7 @@
 #include <configmanager.h>
 #include <editorcolourset.h>
 #include <editormanager.h>
+#include <globals.h>
 #include <logmanager.h>
 #include <macrosmanager.h>
 #include <projectfile.h>
@@ -306,20 +307,20 @@ void cbClangCompileCommands::RebuildCompileCommands(cbProject* pProj)
     wxFileName fn(pProj->GetCommonTopLevelPath(), wxT("compile_commands.json"));
     wxFile out(fn.GetFullPath(), wxFile::write);
     out.Write( wxT("[") );
+    bool bInitial = true;
     for (FilesList::iterator it = pProj->GetFilesList().begin(); it != pProj->GetFilesList().end(); ++it)
     {
         ProjectFile* f = *it;
-        if (it == pProj->GetFilesList().begin())
+        if (FileTypeOf(f->file.GetFullPath()) != ftSource)
         {
-            out.Write(wxTextFile::GetEOL());
-            out.Write(wxT("  "));
+            continue;
         }
-        else
+        if (!bInitial)
         {
             out.Write( wxT(",") );
-            out.Write( wxTextFile::GetEOL() );
-            out.Write( wxT("  ") );
         }
+        out.Write( wxTextFile::GetEOL() );
+        out.Write( wxT("  ") );
         out.Write( wxT("{ \"directory\": ") );
         //wxString executionDir = pProj->GetExecutionDir();
         wxString executionDir = f->file.GetPath();
@@ -338,6 +339,7 @@ void cbClangCompileCommands::RebuildCompileCommands(cbProject* pProj)
         out.Write( wxT("    \"file\": ") );
         WriteStringValue( out, f->file.GetFullName() );
         out.Write( wxT("  }") );
+        bInitial = false;
     }
     out.Write( wxTextFile::GetEOL() );
     out.Write( wxT("]") );
